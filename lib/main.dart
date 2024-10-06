@@ -1,400 +1,229 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => RegistrationProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+      ],
       child: MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  // Initialize GoRouter with ShellRoute for nested routing
-  final GoRouter _router = GoRouter(
-    routes: [
-      ShellRoute(
-        builder: (context, state, child) {
-          return DashboardShell(child: child);
-        },
-        routes: [
-          GoRoute(
-            path: '/',
-            name: 'home',
-            builder: (context, state) => DashboardHomeScreen(),
-          ),
-          GoRoute(
-            path: '/analytics',
-            name: 'analytics',
-            builder: (context, state) => AnalyticsScreen(),
-          ),
-          GoRoute(
-            path: '/categories',
-            name: 'categories',
-            builder: (context, state) => CategoriesScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            name: 'settings',
-            builder: (context, state) => SettingsScreen(),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/register',
-        name: 'register',
-        builder: (context, state) => RegistrationScreen(),
-      ),
-    ],
-  );
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: _router,
-      title: 'Modern Dashboard',
       theme: ThemeData(
-        brightness: Brightness.light,
         primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
     );
   }
 }
-
-// Shared Shell with AppBar and SideDrawer
-class DashboardShell extends StatelessWidget {
-  final Widget child;
-
-  const DashboardShell({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text("Dashboard"),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.lightBlueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {},
-          ),
-          GestureDetector(
-            onTap: () => context.go('/register'), // Navigate to Registration
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.blueAccent),
-            ),
-          ),
-          SizedBox(width: 16),
-        ],
-      ),
-      body: Row(
-        children: [
-          // Show SideDrawer on wide screens
-          if (MediaQuery.of(context).size.width > 800)
-            Expanded(
-              flex: 2,
-              child: SideDrawer(),
-            ),
-          // Main Content Area
-          Expanded(
-            flex: 8,
-            child: child, // Dynamic content based on route
-          ),
-        ],
-      ),
-      drawer: MediaQuery.of(context).size.width <= 800
-          ? SideDrawer()
-          : null, // Show Drawer for mobile
-    );
-  }
-}
-
-// SideDrawer with Navigation Options
-class SideDrawer extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // Get current location to highlight active route
-    final String location = GoRouter.of(context).location;
-
-    return Drawer(
-      child: Container(
-        color: Colors.blueAccent,
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlueAccent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
+final GoRouter _router = GoRouter(
+  routes: [
+    // Redirect '/' to '/dashboard'
+    GoRoute(
+      path: '/',
+      redirect: (context, state) => '/dashboard',
+    ),
+    
+    // ShellRoute for dashboard layout and its sub-routes
+    ShellRoute(
+      builder: (context, state, child) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return Scaffold(
+              appBar: constraints.maxWidth > 800
+                  ? null // Hide app bar on wider screens
+                  : AppBar(
+                      title: Text("Modern Dashboard"),
+                      actions: [Icon(Icons.person)], // Profile icon
+                    ),
+              drawer: constraints.maxWidth <= 800
+                  ? Drawer(
+                      child: DashboardMenu(),
+                    )
+                  : null,
+              body: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child:
-                        Icon(Icons.person, color: Colors.blueAccent, size: 40),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Username',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                  if (constraints.maxWidth > 800)
+                    Expanded(
+                      flex: 2,
+                      child: DashboardMenu(),
+                    ),
+                  Expanded(
+                    flex: 8,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: child,
                     ),
                   ),
                 ],
               ),
+            );
+          },
+        );
+      },
+      routes: [
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) => DashboardHomePage(),
+          routes: [
+            GoRoute(
+              path: 'analytics', // final URL: /dashboard/analytics
+              builder: (context, state) => AnalyticsPage(),
             ),
-            // Navigation Items
-            ListTile(
-              leading: Icon(Icons.dashboard,
-                  color: location == '/' ? Colors.white : Colors.white70),
-              title: Text(
-                'Home',
-                style: TextStyle(
-                    color: location == '/' ? Colors.white : Colors.white70),
-              ),
-              selected: location == '/',
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                context.go('/'); // Navigate to Home
-              },
+            GoRoute(
+              path: 'reports', // final URL: /dashboard/reports
+              builder: (context, state) => ReportsPage(),
             ),
-            ListTile(
-              leading: Icon(Icons.analytics,
-                  color:
-                      location == '/analytics' ? Colors.white : Colors.white70),
-              title: Text(
-                'Analytics',
-                style: TextStyle(
-                    color: location == '/analytics'
-                        ? Colors.white
-                        : Colors.white70),
-              ),
-              selected: location == '/analytics',
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                context.go('/analytics'); // Navigate to Analytics
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.category,
-                  color: location == '/categories'
-                      ? Colors.white
-                      : Colors.white70),
-              title: Text(
-                'Categories',
-                style: TextStyle(
-                    color: location == '/categories'
-                        ? Colors.white
-                        : Colors.white70),
-              ),
-              selected: location == '/categories',
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                context.go('/categories'); // Navigate to Categories
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings,
-                  color:
-                      location == '/settings' ? Colors.white : Colors.white70),
-              title: Text(
-                'Settings',
-                style: TextStyle(
-                    color: location == '/settings'
-                        ? Colors.white
-                        : Colors.white70),
-              ),
-              selected: location == '/settings',
-              onTap: () {
-                Navigator.pop(context); // Close the drawer
-                context.go('/settings'); // Navigate to Settings
-              },
+            GoRoute(
+              path: 'settings', // final URL: /dashboard/settings
+              builder: (context, state) => SettingsPage(),
             ),
           ],
         ),
+      ],
+    ),
+  ],
+);
+
+
+// Provider for managing dashboard data
+class DashboardProvider with ChangeNotifier {
+  List<DashboardItem> _items = [
+    DashboardItem(
+      title: "Analytics",
+      icon: Icons.analytics,
+      route: '/dashboard/analytics',
+    ),
+    DashboardItem(
+      title: "Reports",
+      icon: Icons.pie_chart,
+      route: '/dashboard/reports',
+    ),
+    DashboardItem(
+      title: "Settings",
+      icon: Icons.settings,
+      route: '/dashboard/settings',
+    ),
+  ];
+
+  List<DashboardItem> get items => _items;
+}
+
+class DashboardItem {
+  final String title;
+  final IconData icon;
+  final String route;
+
+  DashboardItem({required this.title, required this.icon, required this.route});
+}
+
+// Modern Sidebar Menu
+class DashboardMenu extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final dashboardProvider = Provider.of<DashboardProvider>(context);
+
+    return Container(
+      color: Colors.blue.shade900,
+      child: ListView.builder(
+        itemCount: dashboardProvider.items.length,
+        itemBuilder: (context, index) {
+          final item = dashboardProvider.items[index];
+          return ListTile(
+            leading: Icon(item.icon, color: Colors.white),
+            title: Text(item.title, style: TextStyle(color: Colors.white)),
+            onTap: () {
+              context.go(item.route);
+            },
+          );
+        },
       ),
     );
   }
 }
 
-// Home Screen Content
-class DashboardHomeScreen extends StatelessWidget {
+// Dashboard Home Page with Modern UI
+class DashboardHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Welcome to the Dashboard!', style: TextStyle(fontSize: 24)),
+      child: GridView.count(
+        crossAxisCount: MediaQuery.of(context).size.width > 800 ? 3 : 1,
+        crossAxisSpacing: 16.0,
+        mainAxisSpacing: 16.0,
+        children: [
+          _buildCard(
+              context, "Analytics", Icons.analytics, "/dashboard/analytics"),
+          _buildCard(context, "Reports", Icons.pie_chart, "/dashboard/reports"),
+          _buildCard(
+              context, "Settings", Icons.settings, "/dashboard/settings"),
+        ],
+      ),
     );
   }
-}
 
-// Analytics Screen Content
-class AnalyticsScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Analytics Screen', style: TextStyle(fontSize: 24)),
-    );
-  }
-}
-
-// Categories Screen Content
-class CategoriesScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Categories Screen', style: TextStyle(fontSize: 24)),
-    );
-  }
-}
-
-// Settings Screen Content
-class SettingsScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Settings Screen', style: TextStyle(fontSize: 24)),
-    );
-  }
-}
-
-// Registration Screen
-class RegistrationScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Register'),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.lightBlueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+  Widget _buildCard(
+      BuildContext context, String title, IconData icon, String route) {
+    return GestureDetector(
+      onTap: () {
+        context.go(route);
+      },
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 50, color: Colors.blue.shade700),
+              SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
         ),
       ),
-      body: RegistrationForm(),
     );
   }
 }
 
-// Registration Form with Image Picker
-class RegistrationForm extends StatefulWidget {
-  @override
-  _RegistrationFormState createState() => _RegistrationFormState();
-}
-
-class _RegistrationFormState extends State<RegistrationForm> {
-  final _formKey = GlobalKey<FormState>();
-  String? _name;
-  String? _email;
-  Uint8List? _selectedImage;
-
+// Analytics Page
+class AnalyticsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<RegistrationProvider>(context);
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Form(
-        key: _formKey,
-        child: ListView(
-          children: [
-            // Name Field
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Name'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your name';
-                }
-                return null;
-              },
-              onSaved: (value) => _name = value,
-            ),
-            SizedBox(height: 16),
-            // Email Field
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Email'),
-              validator: (value) {
-                if (value == null ||
-                    value.isEmpty ||
-                    !RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-              onSaved: (value) => _email = value,
-            ),
-            SizedBox(height: 16),
-            // Image Picker Button
-            ElevatedButton(
-              onPressed: () async {
-                await provider.pickImage();
-                setState(() {
-                  _selectedImage = provider.selectedImage;
-                });
-              },
-              child: Text('Pick Profile Image'),
-            ),
-            SizedBox(height: 16),
-            // Display Selected Image
-            if (_selectedImage != null)
-              Image.memory(_selectedImage!, height: 200, width: 200),
-            // Submit Button
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  // Handle Registration Logic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Registration Successful')),
-                  );
-                }
-              },
-              child: Text('Register'),
-            ),
-          ],
-        ),
-      ),
+    return Center(
+      child: Text("Analytics Page", style: TextStyle(fontSize: 24)),
     );
   }
 }
 
-// Registration Provider for Image Picker
-class RegistrationProvider extends ChangeNotifier {
-  Uint8List? _selectedImage;
+// Reports Page
+class ReportsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text("Reports Page", style: TextStyle(fontSize: 24)),
+    );
+  }
+}
 
-  Uint8List? get selectedImage => _selectedImage;
-
-  Future<void> pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      _selectedImage = await pickedFile.readAsBytes();
-      notifyListeners();
-    }
+// Settings Page
+class SettingsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text("Settings Page", style: TextStyle(fontSize: 24)),
+    );
   }
 }
