@@ -291,64 +291,144 @@ class AnalyticsOverviewPage extends StatelessWidget {
 }
 
 // Line Chart Sample using fl_chart
+
 class LineChartSample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: false),
+        gridData: FlGridData(
+          show: false,
+        ),
         titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: true),
-          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 30,
               getTitlesWidget: (value, meta) {
+                const style = TextStyle(
+                  color: Color(0xff68737d),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                );
+                Widget text;
                 switch (value.toInt()) {
                   case 0:
-                    return Text('Mon');
-                  case 1:
-                    return Text('Tue');
+                    text = const Text('MON', style: style);
+                    break;
                   case 2:
-                    return Text('Wed');
-                  case 3:
-                    return Text('Thu');
+                    text = const Text('TUE', style: style);
+                    break;
                   case 4:
-                    return Text('Fri');
-                  case 5:
-                    return Text('Sat');
+                    text = const Text('WED', style: style);
+                    break;
                   case 6:
-                    return Text('Sun');
+                    text = const Text('THU', style: style);
+                    break;
+                  case 8:
+                    text = const Text('FRI', style: style);
+                    break;
+                  case 10:
+                    text = const Text('SAT', style: style);
+                    break;
+                  case 12:
+                    text = const Text('SUN', style: style);
+                    break;
                   default:
-                    return Text('');
+                    text = const Text('');
+                    break;
                 }
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  child: text,
+                );
               },
             ),
           ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                const style = TextStyle(
+                  color: Color(0xff67727d),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                );
+                String text;
+                switch (value.toInt()) {
+                  case 1:
+                    text = '10K';
+                    break;
+                  case 3:
+                    text = '30k';
+                    break;
+                  case 5:
+                    text = '50k';
+                    break;
+                  default:
+                    return Container();
+                }
+                return Text(text, style: style, textAlign: TextAlign.left);
+              },
+              reservedSize: 42,
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
-        borderData:
-            FlBorderData(show: true, border: Border.all(color: Colors.black12)),
+        borderData: FlBorderData(
+          show: true,
+          border: Border(
+            bottom: BorderSide(color: Colors.black26, width: 1),
+            left: BorderSide(color: Colors.black26, width: 1),
+            right: BorderSide(color: Colors.transparent),
+            top: BorderSide(color: Colors.transparent),
+          ),
+        ),
         minX: 0,
-        maxX: 6,
+        maxX: 12,
         minY: 0,
         maxY: 6,
         lineBarsData: [
           LineChartBarData(
-            spots: [
-              FlSpot(0, 1),
-              FlSpot(1, 3),
-              FlSpot(2, 2),
-              FlSpot(3, 5),
-              FlSpot(4, 3),
-              FlSpot(5, 6),
-              FlSpot(6, 2),
+            spots: const [
+              FlSpot(0, 3),
+              FlSpot(2.5, 2),
+              FlSpot(4.9, 5),
+              FlSpot(6.8, 3.1),
+              FlSpot(8, 4),
+              FlSpot(9.5, 3),
+              FlSpot(11, 4),
             ],
             isCurved: true,
-            // color: [Colors.blue],
-            dotData: FlDotData(show: false),
-            belowBarData: BarAreaData(show: false),
+            gradient: LinearGradient(
+              colors: [
+                ColorTween(begin: Colors.blue, end: Colors.purple).lerp(0.2)!,
+                ColorTween(begin: Colors.blue, end: Colors.purple).lerp(0.8)!,
+              ],
+            ),
+            barWidth: 5,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: false,
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  ColorTween(begin: Colors.blue, end: Colors.purple)
+                      .lerp(0.2)!
+                      .withOpacity(0.1),
+                  ColorTween(begin: Colors.blue, end: Colors.purple)
+                      .lerp(0.8)!
+                      .withOpacity(0.1),
+                ],
+              ),
+            ),
           ),
         ],
       ),
